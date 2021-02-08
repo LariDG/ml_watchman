@@ -44,7 +44,8 @@ int ml_watchman() {
     double x; regTree->SetBranchAddress("x", &x);
     double y; regTree->SetBranchAddress("y", &y);
     double z; regTree->SetBranchAddress("z", &z);
-    //double n100_prev; regTree->SetBranchAddress("n100_prev", &n100_prev);
+    double n100; regTree->SetBranchAddress("n100", &n100);
+    double n100_prev; regTree->SetBranchAddress("n100_prev", &n100_prev);
     double dxmcx; regTree->SetBranchAddress("dxmcx", &dxmcx);
     double dymcy; regTree->SetBranchAddress("dymcy", &dymcy);
     double dzmcz; regTree->SetBranchAddress("dzmcz", &dzmcz);
@@ -54,31 +55,31 @@ int ml_watchman() {
     
     
     
-    mc_data << "gtid," << "mcx," << "mcy," << "mcz," << "mc_energy," << "closestPMT," << "true_wall_r," << "true_wall_z," << "\n";
+    mc_data << "gtid," << "mcx," << "mcy," << "mcz," << "mc_energy," << "closestPMT," << "n100," << "true_wall_r," << "true_wall_z," << "\n";
     
-    reco_data << "gtid," << "x," << "y," << "z," << "pe," << "closestPMT_prev," << "reco_wall_r," << "reco_wall_z," << "/n";
+    reco_data << "gtid," << "x," << "y," << "z," << "pe," << "closestPMT_prev," << "n100_prev," << "reco_wall_r," << "reco_wall_z," << "\n";
     
     for (Long64_t ievt=0; ievt<regTree->GetEntries();ievt++) {
         regTree -> GetEntry(ievt);
        // if(closestPMT_prev <= 500) {
        //     continue;
        // }
-        if(drmcr < 0) {
+        if((mcx < -5000) or (mcx > 5000) or (mcy < -5000) or (mcy > 5000) or (mcz < -5000) or (mcz > 5000) or (closestPMT < 500)) {
             continue;
         }
         
         double reco_vtx_r = x*x + y*y;
-        double reco_wall_r = 10000-TMath::Sqrt(reco_vtx_r);
-        double reco_wall_z = 10000-TMath::Abs(z);
+        double reco_wall_r = 5000-TMath::Sqrt(reco_vtx_r);
+        double reco_wall_z = 5000-TMath::Abs(z);
         
         double true_vtx_r = mcx*mcx + mcy*mcy;
-        double true_wall_r = 10000-TMath::Sqrt(true_vtx_r);
-        double true_wall_z = 10000-TMath::Abs(mcz);
+        double true_wall_r = 5000-TMath::Sqrt(true_vtx_r);
+        double true_wall_z = 5000-TMath::Abs(mcz);
         
         
-        mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << closestPMT << "," << true_wall_r << "," << true_wall_z << "\n";
+        mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << closestPMT << "," << n100 << "," << true_wall_r << "," << true_wall_z << "\n";
         
-        reco_data << gtid << "," << x << "," << y << "," << z << "," << pe << "," << closestPMT_prev << "," << reco_wall_r << "," << reco_wall_z << "\n";
+        reco_data << gtid << "," << x << "," << y << "," << z << "," << pe << "," << closestPMT_prev << "," << n100_prev << "," << reco_wall_r << "," << reco_wall_z << "\n";
         
       
 
