@@ -64,18 +64,21 @@ int ml_watchman() {
        // if(closestPMT_prev <= 500) {
        //     continue;
        // }
-        if((mcx < -5000) or (mcx > 5000) or (mcy < -5000) or (mcy > 5000) or (mcz < -5000) or (mcz > 5000) or (closestPMT < 500)) {
+        if((mcz < -5000) or (mcz > 5000) or (closestPMT < 500) or (closestPMT_prev < 500)) {
             continue;
         }
         
         double reco_vtx_r = x*x + y*y;
-        double reco_wall_r = 5000-TMath::Sqrt(reco_vtx_r);
-        double reco_wall_z = 5000-TMath::Abs(z);
+        double reco_wall_r = 10000-TMath::Sqrt(reco_vtx_r);
+        double reco_wall_z = 10000-TMath::Abs(z);
         
         double true_vtx_r = mcx*mcx + mcy*mcy;
-        double true_wall_r = 5000-TMath::Sqrt(true_vtx_r);
-        double true_wall_z = 5000-TMath::Abs(mcz);
+        double true_wall_r = 10000-TMath::Sqrt(true_vtx_r);
+        double true_wall_z = 10000-TMath::Abs(mcz);
         
+        if((reco_wall_r < 5000) or (true_wall_r < 5000)) {
+            continue;
+        }
         
         mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << closestPMT << "," << n100 << "," << true_wall_r << "," << true_wall_z << "\n";
         
