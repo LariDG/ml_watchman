@@ -35,14 +35,14 @@
 /generator/vtx/set e- flat
 /generator/pos/set 0 0 0
 /generator/rate/set 1.000000
-/run/beamOn 10000
+/run/beamOn 20000
 
 #positrons following Hartlepool spectrum uniformly distributed
 #/generator/add combo spectrum:fill:poisson
 #/generator/vtx/set e+ promptPositron
 #/generator/pos/set 0 0 0
 #/generator/rate/set 1.000000
-#/run/beamOn 1000
+#/run/beamOn 10000
 
 #last number known elections in tank
 #/generator/add combo gun:point:poisson

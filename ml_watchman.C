@@ -22,17 +22,19 @@ using namespace std;
 
 int ml_watchman() {
     
-    TFile * input = new TFile("b_elect_flat_3_wbls_10000_runs.root","READONLY");
+    TFile * input = new TFile("b_elect_flat_1_10_MeV_3_WbLS.root","READONLY");
     TTree * regTree = (TTree*) input -> Get("data");
     
     
     
     ofstream mc_data;
-    mc_data.open ("elect_flat_3_wbls_10000_runs_mc.csv");
+    mc_data.open ("elect_flat_1_10_MeV_3_WbLS_mc.csv");
     
     ofstream reco_data;
-    reco_data.open ("elect_flat_3_wbls_10000_runs_reco.csv");
-
+    reco_data.open ("elect_flat_1_10_MeV_3_WbLS_reco.csv");
+    
+    ofstream energy_data;
+    energy_data.open ("mc_energy_vs_n100.csv");
     
     
     int gtid; regTree->SetBranchAddress("gtid", &gtid);
@@ -44,27 +46,23 @@ int ml_watchman() {
     double x; regTree->SetBranchAddress("x", &x);
     double y; regTree->SetBranchAddress("y", &y);
     double z; regTree->SetBranchAddress("z", &z);
+    //int ncherenkovhit; regTree->SetBranchAddress("ncherenkovhit", &ncherenkovhit);
     double n100; regTree->SetBranchAddress("n100", &n100);
-    double n100_prev; regTree->SetBranchAddress("n100_prev", &n100_prev);
-    double dxmcx; regTree->SetBranchAddress("dxmcx", &dxmcx);
-    double dymcy; regTree->SetBranchAddress("dymcy", &dymcy);
-    double dzmcz; regTree->SetBranchAddress("dzmcz", &dzmcz);
-    double drmcr; regTree->SetBranchAddress("drmcr", &drmcr);
+    //double n100_prev; regTree->SetBranchAddress("n100_prev", &n100_prev);
+    //double n9_prev; regTree->SetBranchAddress("n9_prev", &n9_prev);
     double closestPMT; regTree->SetBranchAddress("closestPMT", &closestPMT);
-    double closestPMT_prev; regTree->SetBranchAddress("closestPMT_prev", &closestPMT_prev);
+    //double closestPMT_prev; regTree->SetBranchAddress("closestPMT_prev", &closestPMT_prev);
     
     
+    mc_data << "gtid," << "mcx," << "mcy," << "mcz," << "mc_energy," << "true_wall_r," << "true_wall_z," << "\n";
     
-    mc_data << "gtid," << "mcx," << "mcy," << "mcz," << "mc_energy," << "closestPMT," << "n100," << "true_wall_r," << "true_wall_z," << "\n";
+    reco_data << "gtid," << "x," << "y," << "z," << "pe," << "closestPMT," << "n100," << "reco_wall_r," << "reco_wall_z," << "\n";
     
-    reco_data << "gtid," << "x," << "y," << "z," << "pe," << "closestPMT_prev," << "n100_prev," << "reco_wall_r," << "reco_wall_z," << "\n";
     
     for (Long64_t ievt=0; ievt<regTree->GetEntries();ievt++) {
         regTree -> GetEntry(ievt);
-       // if(closestPMT_prev <= 500) {
-       //     continue;
-       // }
-        if((mcz < -5000) or (mcz > 5000) or (closestPMT < 500) or (closestPMT_prev < 500)) {
+
+        if((x < -5000) or (x > 5000) or (y < -5000) or (y > 5000) or (y < -5000) or (y > 5000) or (closestPMT < 500)) {
             continue;
         }
         
@@ -76,20 +74,20 @@ int ml_watchman() {
         double true_wall_r = 10000-TMath::Sqrt(true_vtx_r);
         double true_wall_z = 10000-TMath::Abs(mcz);
         
-        if((reco_wall_r < 5000) or (true_wall_r < 5000)) {
+        if((true_wall_r < 5000) or (true_wall_z < 5000)) {
             continue;
         }
         
-        mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << closestPMT << "," << n100 << "," << true_wall_r << "," << true_wall_z << "\n";
+        mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << closestPMT << "," << true_wall_r << "," << true_wall_z << "\n";
         
-        reco_data << gtid << "," << x << "," << y << "," << z << "," << pe << "," << closestPMT_prev << "," << n100_prev << "," << reco_wall_r << "," << reco_wall_z << "\n";
+        reco_data << gtid << "," << x << "," << y << "," << z << "," << pe << "," << closestPMT << "," << n100 << "," << reco_wall_r << "," << reco_wall_z << "\n";
         
-      
 
     };
 
     mc_data.close();
     reco_data.close();
+    energy_data.close();
     
     return 0;
 }
