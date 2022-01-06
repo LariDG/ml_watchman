@@ -22,19 +22,19 @@ using namespace std;
 
 int ml_watchman() {
     
-    TFile * input = new TFile("b_elect_flat_1_10_MeV_3_WbLS.root","READONLY");
+    TFile * input = new TFile("pos_energy_tests.root","READONLY");
     TTree * regTree = (TTree*) input -> Get("data");
     
     
     
     ofstream mc_data;
-    mc_data.open ("elect_flat_1_10_MeV_3_WbLS_mc.csv");
+    mc_data.open ("pos_energy_tests_mc.csv");
     
     ofstream reco_data;
-    reco_data.open ("elect_flat_1_10_MeV_3_WbLS_reco.csv");
+    reco_data.open ("pos_energy_tests_reco.csv");
     
-    ofstream energy_data;
-    energy_data.open ("mc_energy_vs_n100.csv");
+    //ofstream energy_data;
+    //energy_data.open ("wbls_220000_normal_data.csv");
     
     
     int gtid; regTree->SetBranchAddress("gtid", &gtid);
@@ -57,14 +57,16 @@ int ml_watchman() {
     mc_data << "gtid," << "mcx," << "mcy," << "mcz," << "mc_energy," << "true_wall_r," << "true_wall_z," << "\n";
     
     reco_data << "gtid," << "x," << "y," << "z," << "pe," << "closestPMT," << "n100," << "reco_wall_r," << "reco_wall_z," << "\n";
+	
+	//energy_data << "mc_energy," << "pe," << "n100," << "reco_wall_r," << "reco_wall_z," << "\n";
     
     
     for (Long64_t ievt=0; ievt<regTree->GetEntries();ievt++) {
         regTree -> GetEntry(ievt);
 
-        if((x < -5000) or (x > 5000) or (y < -5000) or (y > 5000) or (y < -5000) or (y > 5000) or (closestPMT < 500)) {
-            continue;
-        }
+        //if((x < -5700) or (x > 5700) or (y < -5700) or (y > 5700) or (z < -5700) or (z > 5700) or (closestPMT < 500)) {
+        //    continue;
+        //}
         
         double reco_vtx_r = x*x + y*y;
         double reco_wall_r = 10000-TMath::Sqrt(reco_vtx_r);
@@ -74,20 +76,20 @@ int ml_watchman() {
         double true_wall_r = 10000-TMath::Sqrt(true_vtx_r);
         double true_wall_z = 10000-TMath::Abs(mcz);
         
-        if((true_wall_r < 5000) or (true_wall_z < 5000)) {
+        if((reco_wall_r < 4300) or (reco_wall_r > 10000) or (reco_wall_z < 4300) or (reco_wall_z > 10000)) {
             continue;
         }
         
-        mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << closestPMT << "," << true_wall_r << "," << true_wall_z << "\n";
+        mc_data << gtid << "," << mcx << "," << mcy << "," << mcz << "," << mc_energy << "," << true_wall_r << "," << true_wall_z << "\n";
         
         reco_data << gtid << "," << x << "," << y << "," << z << "," << pe << "," << closestPMT << "," << n100 << "," << reco_wall_r << "," << reco_wall_z << "\n";
         
-
+		//energy_data << mc_energy << "," << pe << "," << n100 << "," << reco_wall_r << "," << reco_wall_z << "\n";
     };
 
     mc_data.close();
     reco_data.close();
-    energy_data.close();
+    //energy_data.close();
     
     return 0;
 }

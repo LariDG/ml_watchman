@@ -52,14 +52,14 @@ df_reco = reco_read[['gtid', 'x', 'y', 'z', 'pe', 'closestPMT', 'n100', 'reco_wa
 #print(df_reco)
 
 #normalising variables in files
-df_reco_n = pd.DataFrame([df_reco['x']/10000, df_reco['y']/10000, df_reco['z']/10000, df_reco['pe']/400, df_reco['closestPMT']/7000, df_reco['n100']/300, df_reco['reco_wall_r']/10000, df_reco['reco_wall_z']/10000]).T
+df_reco_n = pd.DataFrame([df_reco['pe']/400, df_reco['closestPMT']/7000, df_reco['n100']/300, df_reco['reco_wall_r']/10000, df_reco['reco_wall_z']/10000]).T
 
 print("check normalisation of reconstructed data:")
 print(df_reco_n.head(), df_reco_n.shape)
 print("----------------------------------------------------------------------------")
 
 
-df_mc_n = pd.DataFrame([df_mc['mcx']/10000, df_mc['mcy']/10000, df_mc['mcz']/10000,  df_mc['mc_energy']/10, df_mc['true_wall_r']/10000, df_mc['true_wall_z']/10000]).T
+df_mc_n = pd.DataFrame([df_mc['mc_energy']/10, df_mc['true_wall_r']/10000, df_mc['true_wall_z']/10000]).T
 
 print("check normalisation of true data: ")
 print(df_mc_n.head(), df_mc_n.shape)
@@ -67,8 +67,12 @@ print("-------------------------------------------------------------------------
 
 
 mc_array = np.array(df_mc_n[['mc_energy']])
+mcwr = np.array(df_mc_n[['true_wall_r']])
+mcwz = np.array(df_mc_n[['true_wall_z']])
 
-reco_array = np.array(df_reco_n[['x', 'y', 'z', 'pe', 'closestPMT', 'n100', 'reco_wall_r', 'reco_wall_z']])
+reco_array = np.array(df_reco_n[['pe', 'closestPMT', 'n100', 'reco_wall_r', 'reco_wall_z']])
+pe_array = np.array(df_reco_n[['pe']])
+n100_array = np.array(df_reco_n[['n100']])
 
 rnd_indices = np.random.rand(len(reco_array)) < 0.50
 
@@ -77,6 +81,10 @@ reco_array_train = reco_array[rnd_indices]
 
 mc_array_pred = mc_array[~rnd_indices]
 reco_array_pred = reco_array[~rnd_indices]
+mcwr_pred = mcwr[~rnd_indices]
+mcwz_pred = mcwz[~rnd_indices]
+pe_pred = pe_array[~rnd_indices]
+n100_pred = n100_array[~rnd_indices]
 
 print('number of training events and shape(true): ', len(mc_array_train), ' ', mc_array_train.shape,  ' number of predicting events and shape: ', len(mc_array_pred), ' ', mc_array_pred.shape)
 
@@ -87,7 +95,7 @@ print('number of training events and shape(reco): ', len(reco_array_train), ' ',
 print('----------------------------------------------------------------------------')
 
 
-n_estimators=500
+n_estimators=600
 params = {'n_estimators':n_estimators, 'max_depth': 10,
     'learning_rate': 0.01, 'loss': 'lad'}
 
@@ -118,15 +126,29 @@ print(pred_output)
 
 Y=[0 for j in range (0,len(mc_array_pred))]
 for i in range(len(mc_array_pred)):
-    Y[i] = 100 * (mc_array_pred[i] - pred_output[i]) / (1 * mc_array_pred[i])
+    Y[i] = (mc_array_pred[i] - pred_output[i]) / (1 * mc_array_pred[i])
+
+wall_dist=[0 for j in range (0,len(mcwr_pred))]
+for i in range(len(mcwr_pred)):
+    if mcwr_pred[i] >= mcwz_pred[i]:
+        wall_dist[i] = mcwz_pred[i]
+    else:
+        wall_dist[i] = mcwr_pred[i]
+
 
 df1 = pd.DataFrame(mc_array_pred,columns=['TrueEnergy'])
 df2 = pd.DataFrame(pred_output,columns=['RecoE'])
-df_final = pd.concat([df1,df2],axis=1)
+df3 = pd.DataFrame(Y,columns=['(TEnergy-REnergy/TEnergy)'])
+df4 = pd.DataFrame(wall_dist,columns=['DistanceWall'])
+df5 = pd.DataFrame(pe_pred,columns=['pe'])
+df6 = pd.DataFrame(n100_pred,columns=['n100'])
+df_final = pd.concat([df1,df2,df3,df4,df5,df6],axis=1)
 
 
 assert(df1.shape[0]==len(pred_output))
 assert(df_final.shape[0]==df2.shape[0])
+assert(df_final.shape[0]==df3.shape[0])
+assert(df_final.shape[0]==df4.shape[0])
 
 df_final.to_csv(outfile_name, float_format = '%.3f')
 
@@ -145,7 +167,7 @@ plt.show()
 
 
 
-features = np.array(('x', 'y', 'z', 'pe', 'closestPMT', 'n100', 'reco_wall_r', 'reco_wall_z'))
+features = np.array(('pe', 'closestPMT', 'n100', 'reco_wall_r', 'reco_wall_z'))
 print(features)
 feature_importance = gbr.feature_importances_
 print(feature_importance)
@@ -170,14 +192,15 @@ fig.tight_layout()
 plt.show()
 
 """
-    
-infile = 'wbls_merged_130000_ml_output_500.csv'
+	
+infile = 'wbls_220000_final_ml_output.csv'
 file = open(str(infile))
 file_read = pd.read_csv(file)
-df = file_read[['TrueEnergy', 'RecoE']]
-file_array = np.array(df[['TrueEnergy', 'RecoE']])
-TrueEnergy = file_array.T[0]
-RecoE = file_array.T[1]
+df = file_read[['TrueEnergy', 'RecoE', 'pe']]
+file_array = np.array(df[['TrueEnergy', 'RecoE', 'pe']])
+TrueEnergy = file_array.T[0] * 10
+RecoE = file_array.T[1] * 10
+pe = file_array.T[2]
 
 data = []
 for i in range(len(RecoE)):
@@ -186,7 +209,7 @@ for i in range(len(RecoE)):
         continue
     else:
         data.append(point)
-
+        
 
 mu, std = norm.fit(data)
 FWHM = 2*np.sqrt(2*np.log(2))*std
@@ -201,10 +224,75 @@ plt.xlabel('(true energy - reconstructed energy)/true energy')
 plt.show()
 
 
+mean_energy = []
+mean_energy_error = []
+std_energy = []
+std_energy_error = []
+x_error = []
+for i in range(len(x)):
+    energy = []
+    for j in range(len(RecoE)):
+        if (TrueEnergy[j] <= x[i] + 0.05) and (TrueEnergy[j] >= x[i] - 0.05):
+            point = TrueEnergy[j]-RecoE[j]
+            energy.append(point)
+    print(len(energy))
+    nbins = 9
+    n, bins, patches = plt.hist(energy, nbins, density=True, facecolor = 'grey', alpha = 0.5, label='before')
+    centers = (0.5*(bins[1:]+bins[:-1]))
+    pars, cov = curve_fit(lambda energy, mu, sig : norm.pdf(energy, loc=mu, scale=sig), centers, n, p0=[0,1], bounds=[-1,1])
+    mu = pars[0]
+    mu_error = np.sqrt(cov[0,0])
+    std = pars[1]
+    std_error = np.sqrt(cov[1,1])
+    mean_energy.append(mu)
+    mean_energy_error.append(mu_error)
+    std_energy.append(std)
+    std_energy_error.append(std_error)
+    x_error.append(0.05)
+    plt.plot(centers, norm.pdf(centers,*pars), 'k--',linewidth = 2, label='fit before')
+    plt.show()
+
+	
+	
+df1 = pd.DataFrame(x,columns=['TrueEnergy'])
+df2 = pd.DataFrame(x_error,columns=['TrueEnergy_error'])
+df3 = pd.DataFrame(std_energy,columns=['sigma'])
+df4 = pd.DataFrame(std_energy_error,columns=['sigma_error'])
+df5 = pd.DataFrame(mean_energy,columns=['mean'])
+df6 = pd.DataFrame(mean_energy_error,columns=['mean_error'])
+df_final = pd.concat([df1,df2,df3,df4,df5],axis=1)
+df_final.to_csv('graph_dat_large_run_2.csv', float_format = '%.3f')
+	
+	
+set datafile sep ','
+set key autotitle columnhead
+f(x) = a/sqrt(x) + b + c/x
+fit f(x) "graph_dat_large_run.csv" u 2:($3/$2):($4/$2) yerrorbars via a,b,c
+p "graph_dat_large_run.csv" u 2:($3/$2):($4/$2) w yerrorbars notitle, f(x) title "a/√E + b + c/E", "graph_dat_large_run.csv" u ($2*10):($4/$2) title "mean ΔE/E" w l
+
+set key font ",15"
+set xlabel "True Energy (MeV)" font ",15"
+set ylabel "σ/E" font ",15"
+set title "Energy Resolution of flat spectrum throughout tank"
+
+
+
+
+	if (TrueEnergy[j] <= x[i] + 0.01) and (TrueEnergy[j] >= x[i] - 0.01):
+    
+def func(x,a,b,c):
+    return a/np.sqrt(x) + b/x + c
+    
+popt, pcov = curve_fit(func, x, y)
+
+
+
 eval_input_fn = make_input_fn(reco_test, mc_test, shuffle=False, n_epochs=1)
 pred_dicts = list(linear_est.predict(eval_input_fn))
 probs = pd.Series([pred['probabilities'][1] for pred in pred_dicts])
 fpr, tpr, _ = roc_curve(mc_test, probs)
+
+
 
 
 ns_probs = [0 for _ in range(len(mc_test))]
